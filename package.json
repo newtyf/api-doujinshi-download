@@ -4,7 +4,8 @@
   "description": "a scrapper download mangas to pdf for enjoy us",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
   },
   "author": "Axel Muñoz <axelskam.123@outlook.es>",
   "license": "MIT",
