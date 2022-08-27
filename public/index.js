@@ -15,7 +15,7 @@ async function donwloadPdf(atomicNumber) {
   const loader = document.createElement('p')
   loader.innerText = 'espere un momento mientras descargamos su pdf...'
   document.body.appendChild(loader)
-  const res = await fetch(`/download-manga-pdf?atomicNumber=${atomicNumber}`)
+  const res = await fetch(`https://manga-download.herokuapp.com/download-manga-pdf?atomicNumber=${atomicNumber}`)
   const data = await res.json()
   console.log(data);
   loader.innerText = 'Aqui esta su salsita!!!'
