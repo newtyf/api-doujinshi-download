@@ -4,6 +4,7 @@ const axios = require("axios");
 const imgToPDF = require("image-to-pdf");
 const express = require("express");
 
+const PORT = process.env.PORT || 3000
 const app = express();
 
 app.use(express.static("public"));
@@ -99,6 +100,6 @@ app.get("/download-manga-pdf", async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
+app.listen(PORT, () => {
   console.log("http://localhost:3000");
 });
