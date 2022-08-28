@@ -3,11 +3,13 @@ const fs = require("fs");
 const axios = require("axios");
 const imgToPDF = require("image-to-pdf");
 const express = require("express");
+const cors = require('cors')
 
 const PORT = process.env.PORT || 3000
 const app = express();
+app.use(cors())
 
-app.use(express.static("public"));
+//app.use(express.static("public"));
 app.use("/salsa", express.static("salsa"));
 
 const scrapper = async (atomicNumber) => {
@@ -90,6 +92,11 @@ function deleteTrash() {
     console.log("Trash deleted");
   });
 }
+
+app.get("/", (req, res) => {
+  res.write('Api of manga download')
+  res.end()
+});
 
 app.get("/download-manga-pdf", async (req, res) => {
   if (!isNaN(req.query.atomicNumber) && req.query.atomicNumber.length === 6) {
