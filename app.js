@@ -2,7 +2,7 @@ const cheerio = require("cherio");
 const request = require("request-promise");
 const fs = require("fs");
 const axios = require("axios");
-const imgToPDF = require("image-to-pdf");
+const imagesToPdf = require("images-to-pdf");
 const express = require("express");
 const cors = require("cors");
 
@@ -40,7 +40,20 @@ const scrapperCherio = async (atomicNumber) => {
   }
 
   console.log("Creating pdf...");
-  await imgsToPdf(atomicNumber);
+  let images = fs.readdirSync("./downloads");
+  images = images.filter((item) => {
+    const arrayItem = item.split(".");
+    if (arrayItem[1] === "jpg") {
+      return item;
+    }
+  });
+  const pages = images.map((item) => {
+    return (item = "./downloads/" + item);
+  });
+  await imagesToPdf(
+    pages,
+    `salsa/${atomicNumber}.pdf`
+  );
   console.log("Pdf created!!");
   deleteTrash();
   return new Promise((resolve, reject) => {
@@ -49,26 +62,6 @@ const scrapperCherio = async (atomicNumber) => {
     }, 3000);
   });
 };
-
-async function imgsToPdf(namePdf) {
-  return new Promise((resolve, reject) => {
-    let images = fs.readdirSync("./downloads");
-    images = images.filter(item => {
-      const arrayItem = item.split(".")
-        if (arrayItem[1] === "jpg") {
-          return item
-        }
-    } )
-    const pages = images.map((item) => {
-      return (item = "./downloads/" + item);
-    });
-
-    imgToPDF(pages, imgToPDF.sizes.A4).pipe(
-      fs.createWriteStream(`./salsa/${namePdf}.pdf`)
-    );
-    resolve("pdf creado");
-  });
-}
 
 const download_image = (url, image_path) =>
   axios({
