@@ -1,62 +1,56 @@
-const { chromium } = require("playwright");
+const cheerio = require("cherio");
+const request = require("request-promise");
 const fs = require("fs");
 const axios = require("axios");
 const imgToPDF = require("image-to-pdf");
 const express = require("express");
-const cors = require('cors')
+const cors = require("cors");
 
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 3000;
 const app = express();
-app.use(cors())
+app.use(cors());
 
-//app.use(express.static("public"));
 app.use("/salsa", express.static("salsa"));
 
-const scrapper = async (atomicNumber) => {
-  const browser = await chromium.launch();
-  console.log("Open Browser...");
-  const page = await browser.newPage();
-  console.log("Open Page...");
-  await page.goto(`http://nhentai.to/g/${atomicNumber}`);
-  console.log("Open nHentai...");
-  await page.locator("#thumbnail-container .thumb-container a").nth(0).click();
-  const salsaCount = await page.textContent(
-    ".container #pagination-page-top button .num-pages"
-  );
-  console.log(`Cantidad de hojas a del manga: ${salsaCount}`);
-  console.log("Empezando descarga...");
-  for (let i = 0; i < salsaCount; i++) {
-    const salsa = await page
-      .locator(".container #image-container a img")
-      .getAttribute("src");
-    const path = `${__dirname}/downloads/manga-image-${i + 1}.jpg`;
+const scrapperCherio = async (atomicNumber) => {
+  const MainPage = await request({
+    uri: `http://nhentai.to/g/${atomicNumber}`,
+    transform: (body) => cheerio.load(body),
+  });
+
+  const salsaCount = MainPage("#info>div").html().trim().split(" ")[0];
+
+  for (let i = 1; i <= parseInt(salsaCount); i++) {
+    const salsaPage = await request({
+      uri: `http://nhentai.to/g/${atomicNumber}/${i}`,
+      transform: (body) => cheerio.load(body),
+    });
+
+    const salsaUri = salsaPage("#page-container #image-container img").attr(
+      "src"
+    );
+    const path = `${__dirname}/downloads/manga-image-${i}.PNG`;
+
     try {
-      await download_image(salsa, path);
-      console.log(`se descargo ${i + 1}`);
+      await download_image(salsaUri, path);
+      console.log(`se descargo ${i}`);
     } catch (error) {
       console.log(error);
     }
-
-    await page.goto(`http://nhentai.to/g/${atomicNumber}/${i + 1}`, {
-      waitUntil: "domcontentloaded",
-      timeout: 0,
-    });
   }
 
-  await browser.close();
-
   console.log("Creating pdf...");
-  await imgsToPdf();
+  await imgsToPdf(atomicNumber);
   console.log("Pdf created!!");
   deleteTrash();
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      resolve("salsa/salsa.pdf");
-    }, 3000)
+      resolve(`salsa/${atomicNumber}.pdf`);
+    }, 3000);
   });
 };
 
-async function imgsToPdf() {
+async function imgsToPdf(namePdf) {
   return new Promise((resolve, reject) => {
     const images = fs.readdirSync("./downloads");
     const pages = images.map((item) => {
@@ -64,7 +58,7 @@ async function imgsToPdf() {
     });
 
     imgToPDF(pages, imgToPDF.sizes.A4).pipe(
-      fs.createWriteStream("./salsa/salsa.pdf")
+      fs.createWriteStream(`./salsa/${namePdf}.pdf`)
     );
     resolve("pdf creado");
   });
@@ -94,16 +88,15 @@ function deleteTrash() {
 }
 
 app.get("/", (req, res) => {
-  res.write('Api of manga download')
-  res.end()
+  res.send("Api of manga download");
 });
 
 app.get("/download-manga-pdf", async (req, res) => {
   if (!isNaN(req.query.atomicNumber) && req.query.atomicNumber.length === 6) {
-    const urlToSalsa = await scrapper(req.query.atomicNumber);
-    res.json({ res: urlToSalsa });
+    const urlToSalsa = await scrapperCherio(req.query.atomicNumber);
+    res.json({ res: urlToSalsa, error: false });
   } else {
-    res.json({ res: "valor no valido" });
+    res.json({ res: "valor no valido", error: true });
   }
 });
 

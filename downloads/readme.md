@@ -1,1 +1,0 @@
-### Aqui van las imagenes para ser pdf
