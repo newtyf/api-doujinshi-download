@@ -102,9 +102,9 @@ app.get("/", (req, res) => {
 app.get("/download-manga-pdf", async (req, res) => {
   if (!isNaN(req.query.atomicNumber) && req.query.atomicNumber.length === 6) {
     const urlToSalsa = await scrapperCherio(req.query.atomicNumber);
-    res.json({ res: urlToSalsa, error: false });
+    res.send({ res: urlToSalsa, error: false });
   } else {
-    res.json({ res: "valor no valido", error: true });
+    res.send({ res: "valor no valido", error: true });
   }
 });
 
