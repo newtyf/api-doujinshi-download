@@ -29,7 +29,7 @@ const scrapperCherio = async (atomicNumber) => {
     const salsaUri = salsaPage("#page-container #image-container img").attr(
       "src"
     );
-    const path = `${__dirname}/downloads/manga-image-${i}.PNG`;
+    const path = `${__dirname}/downloads/manga-image-${i}.jpg`;
 
     try {
       await download_image(salsaUri, path);
@@ -52,7 +52,13 @@ const scrapperCherio = async (atomicNumber) => {
 
 async function imgsToPdf(namePdf) {
   return new Promise((resolve, reject) => {
-    const images = fs.readdirSync("./downloads");
+    let images = fs.readdirSync("./downloads");
+    images = images.filter(item => {
+      const arrayItem = item.split(".")
+        if (arrayItem[1] === "jpg") {
+          return item
+        }
+    } )
     const pages = images.map((item) => {
       return (item = "./downloads/" + item);
     });
@@ -81,7 +87,9 @@ const download_image = (url, image_path) =>
 function deleteTrash() {
   fs.readdir("./downloads", (err, files) => {
     files.forEach((element) => {
-      fs.unlinkSync(`./downloads/${element}`);
+      if (element.split(".")[1] === "jpg") {
+        fs.unlinkSync(`./downloads/${element}`);
+      }
     });
     console.log("Trash deleted");
   });
