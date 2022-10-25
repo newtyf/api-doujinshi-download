@@ -8,7 +8,9 @@ const cors = require("cors");
 
 const PORT = process.env.PORT || 3000;
 const app = express();
-app.use(cors());
+app.use(cors({
+	origin: "*"
+}));
 
 app.use("/salsa", express.static("salsa"));
 
