@@ -5,12 +5,16 @@ const axios = require("axios");
 const imagesToPdf = require("images-to-pdf");
 const express = require("express");
 const cors = require("cors");
+const { ExistPdf } = require("./middleware/existPdf");
+const path = require("path");
 
 const PORT = process.env.PORT || 3000;
 const app = express();
-app.use(cors({
-	origin: "*"
-}));
+app.use(
+  cors({
+    origin: "*",
+  })
+);
 
 app.use("/salsa", express.static("salsa"));
 
@@ -31,7 +35,7 @@ const scrapperCherio = async (atomicNumber) => {
     const salsaUri = salsaPage("#page-container #image-container img").attr(
       "src"
     );
-    const path = `${__dirname}/downloads/manga-image-${i}.jpg`;
+    const path = `${__dirname}/downloads/${i}.jpg`;
 
     try {
       await download_image(salsaUri, path);
@@ -42,27 +46,16 @@ const scrapperCherio = async (atomicNumber) => {
   }
 
   console.log("Creating pdf...");
-  let images = fs.readdirSync("./downloads");
-  images = images.filter((item) => {
-    const arrayItem = item.split(".");
-    if (arrayItem[1] === "jpg") {
-      return item;
-    }
-  });
-  const pages = images.map((item) => {
-    return (item = "./downloads/" + item);
-  });
-  await imagesToPdf(
-    pages,
-    `salsa/${atomicNumber}.pdf`
-  );
+  try {
+    await transformPdf(atomicNumber)
+  } catch (error) {
+    deleteTrash();
+    console.log("Pdf error");
+    return { res: `no se pudo obtener el pdf`, error: true };
+  }
   console.log("Pdf created!!");
   deleteTrash();
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      resolve(`salsa/${atomicNumber}.pdf`);
-    }, 3000);
-  });
+  return { res: `salsa/${atomicNumber}.pdf`, error: false };
 };
 
 const download_image = (url, image_path) =>
@@ -77,7 +70,24 @@ const download_image = (url, image_path) =>
           .on("finish", () => resolve())
           .on("error", (e) => reject(e));
       })
-  );
+);
+
+async function transformPdf(atomicNumber) {
+  let images = fs.readdirSync("./downloads");
+  images = images.filter((item) => {
+    const arrayItem = item.split(".");
+    if (arrayItem[1] === "jpg") {
+      return item;
+    }
+  });
+  images = images.map(item => item.split(".")[0]).sort((a,b)=> a-b)
+  console.log(images);
+  const pages = images.map((item) => {
+    return (item = `./downloads/${item}.jpg`);
+  });
+  console.log(pages);
+  await imagesToPdf(pages, `salsa/${atomicNumber}.pdf`);
+}
 
 function deleteTrash() {
   fs.readdir("./downloads", (err, files) => {
@@ -94,13 +104,9 @@ app.get("/", (req, res) => {
   res.send("Api of manga download");
 });
 
-app.get("/download-manga-pdf", async (req, res) => {
-  if (!isNaN(req.query.atomicNumber) && req.query.atomicNumber.length === 6) {
-    const urlToSalsa = await scrapperCherio(req.query.atomicNumber);
-    res.send({ res: urlToSalsa, error: false });
-  } else {
-    res.send({ res: "valor no valido", error: true });
-  }
+app.get("/download-manga-pdf", ExistPdf ,async (req, res) => {
+  const urlToSalsa = await scrapperCherio(req.query.atomicNumber);
+  res.send(urlToSalsa);
 });
 
 app.listen(PORT, () => {
